@@ -1,0 +1,11 @@
+#Ignore temp and fasl files
+*~
+\#*\#
+\.\#*
+*.fasl
+*.lx64fsl
+*.dx64fsl
+object-store
+*.DS_Store
+*.csv
+datastore/2*
