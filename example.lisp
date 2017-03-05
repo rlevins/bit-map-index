@@ -166,7 +166,7 @@
 
 
 
-;;;  run length huffman encodings
+;;;  run length huffman encodings - Experimental
 
 
 (setf *db* (make-array 19 :initial-contents (list 
