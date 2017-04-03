@@ -4,11 +4,11 @@ A common lisp library that provides a bit-mapped index. See the file `example.li
 
 ```lisp
 ;; Do this to setup to follow the examples
-(defpackage :bmi-test
+(defpackage :bmi-example
   (:use :cl :bit-map-index))
 
-(in-package :bmi-test)
-;; #<Package "BMI-TEST">
+(in-package :bmi-example)
+;; #<Package "BMI-EXAMPLE">
 
 
 ;; An Array of objects/rows, e.g. support tickets
