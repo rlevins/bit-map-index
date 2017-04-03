@@ -1,7 +1,11 @@
-(defpackage :bmi-test
+;;;; example.lisp
+;;;; Full working example for bit-map-index library
+
+
+(defpackage :bmi-example
   (:use :cl :bit-map-index))
 
-(in-package :bmi-test)
+(in-package :bmi-example)
 ;; #<Package "BMI-TEST">
 
 
@@ -9,7 +13,7 @@
 ;; 'account', 'status', 'prirority' 'assignee'
 
 ;; Make a data set
-(setf *db* (make-array 10 
+(defparameter *db* (make-array 10 
 		       :initial-contents
 		       '(("InGen" "closed" "normal" "Bob Tomato")
 			 ("Initech" "open" "normal" "Larry Cucumber")
@@ -28,11 +32,11 @@
 
 
 ;; make a bit-map-indexes for two columns
-(setf *bmi-status* (make-bitmap-index 10 #'equal))
+(defparameter *bmi-status* (make-bitmap-index 10 #'equal))
 
 ;;#S(BITMAP-INDEX :KEY-HASH #<HASH-TABLE :TEST EQL size 0/60 #x30203DF6FDAD> :SIZE 10)
 
-(setf *bmi-priority* (make-bitmap-index 10 #'equal))
+(defparameter *bmi-priority* (make-bitmap-index 10 #'equal))
 
 ;;#S(BITMAP-INDEX :KEY-HASH #<HASH-TABLE :TEST EQL size 0/60 #x30203E13F4FD> :SIZE 10)
 
@@ -132,7 +136,7 @@
 ;; (0 2 3 4 5 6 7 8)
 
 
-(loop for index in (get-bitmap-indexes *bmi* :first )
+(loop for index in (get-bitmap-indexes *bmi-status* "closed")
        collecting (aref *db* index))
 ;; (("InGen" "closed" "normal" "Bob Tomato")
 ;;  ("Charles Dickens, Inc." "closed" "high" "Dogbert")
@@ -163,115 +167,4 @@
 ;;  (("Charles Dickens, Inc." "closed" "high" "Dogbert")
 ;;   ("Initech" "closed" "high" "John Doe")
 ;;   ("Weyland-Yutani Corporation" "closed" "high" "Jane Doe"))
-
-
-
-;;;  run length huffman encodings - Experimental
-
-
-(setf *db* (make-array 19 :initial-contents (list 
-		      :male :female :female :female
-		      :male :male :male :female
-		      :female :male :male :male
-		      :female :female :female :male
-		      :female :female :female) :fill-pointer t))
-
-
-(setf *clients* (make-bitmap-index 19 #'eql))
-
-
-
-
-(defun rlh (bitmap)
-  (let ((counter 0)
-	(encoded nil))
-    (map nil
-	 #'(lambda (bit)
-	     (case bit
-	       (0 (incf counter))
-	       (1 (setf encoded
-			(push counter encoded))
-		  (setf counter 0))))
-	 bitmap)
-    (nreverse
-     (if (> counter 0)
-	 (push counter encoded)
-	 encoded))))
-
-(loop for bitmap being the hash-values of (bitmap-index-key-hash *clients*)
-	     collecting (rlh bitmap))
-
-(defun freqs (rlh-bitmaps)
-  (let ((freqs nil))
-    (macrolet ((count-place (count)
-		 `(assoc ,count freqs :test #'=)))
-     (map nil #'(lambda (rlh-bitmap)
-		  (map nil #'(lambda (count)
-			       (if (count-place count) 
-				   (incf (cdr (count-place count)))
-				   (push (cons count 1) freqs)))
-		       rlh-bitmap))
-	  rlh-bitmaps))
-    (sort freqs #'> :key #'cdr )))
-
-(freqs (loop for bitmap being the hash-values of (bitmap-index-key-hash *clients*)
-		    collecting (rlh bitmap)))
-;Compiler warnings :
-;   In an anonymous lambda form: Undeclared free variable *CLIENTS*
-;;  ((0 . 12) (3 . 5) (1 . 2) (2 . 1))
-
-
-
-(defstruct tree-node 
-	   lh-node
-	   rh-node)
-
-(defun huffman-tree (freqs)
-  (let ((rev-freqs (reverse freqs)))
-    (do ((rh-node (car rev-freqs))
-	 (rev-freqs (cdr (cdr rev-freqs))
-		    (cdr rev-freqs))
-	 (lh-node (car rev-freqs)
-		  (car rev-freqs))
-	 (done-p nil))
-	(done-p rh-node)
-      (format t "rev-freqs:~a~%lh-node: ~a ~%rh-node: ~a~%"
-	      rev-freqs lh-node rh-node)
-      (setf rh-node (make-tree-node :rh-node  rh-node
-				    :lh-node  lh-node))
-      (setf done-p (null rev-freqs)))))
-
-(huffman-tree
- (freqs
-  (loop for bitmap being the hash-values of (bitmap-index-key-hash *clients*)
-     collecting (rlh bitmap))))
-
-;Compiler warnings :
-;   In an anonymous lambda form: Undeclared free variable *CLIENTS*
-;; rev-freqs:((3 . 5) (0 . 12))
-;; lh-node: (2 . 1) 
-;; rh-node: (2 . 1)
-;; rev-freqs:((0 . 12))
-;; lh-node: (3 . 5) 
-;; rh-node: #S(TREE-NODE :LH-NODE (2 . 1) :RH-NODE (2 . 1))
-;; rev-freqs:NIL
-;; lh-node: (0 . 12) 
-;; rh-node: #S(TREE-NODE :LH-NODE (3 . 5) :RH-NODE #S(TREE-NODE :LH-NODE (2 . 1) :RH-NODE (2 . 1)))
-
-
-;; #S(TREE-NODE :LH-NODE (0 . 12) :RH-NODE #S(TREE-NODE :LH-NODE (3 . 5) :RH-NODE #S(TREE-NODE :LH-NODE (2 . 1) :RH-NODE (2 . 1))))
-
-
-
-(defun huffman-encodings (huffman-tree)
-  ;;  ()
-  ;;  Need to calculate huffman-encodings from a tree
-  ;; (let ((visited nil)
-  ;; 	(path nil))
-  ;;   (do ((rh-node (tree-node-rh-node huffman-tree)
-  ;; 		  (tree-node-rh-node huffman-tree)))
-  ;; 	((tree-node-p rh-node) rh-node)
-  ;;     (setf path (push 1 path))))
-  )
-
 
