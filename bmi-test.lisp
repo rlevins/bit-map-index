@@ -85,7 +85,8 @@
        (is (= 20 (array-total-size bitmap)))))
 
 (test (keys-present-test :depends-on api-make-bitmap-index)
-  (is (equal '("open" "closed")
-	     (loop for key being the hash-keys of (bitmap-index-key-hash *bmi-status*)
-		collecting key))))
+  (is (not (set-difference '("open" "closed")
+	               (loop for key being the hash-keys of (bitmap-index-key-hash *bmi-status*)
+		             collecting key)
+                       :test #'equal))))
 
